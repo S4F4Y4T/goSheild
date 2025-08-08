@@ -6,7 +6,7 @@ import (
 )
 
 func help() {
-	fmt.Println("\n$ List of all available commands:\n")
+	fmt.Println("$ List of all available commands:")
 
 	fmt.Printf("%-15s %-20s %s\n", "Command", "Name", "Description")
 	fmt.Println(strings.Repeat("-", 60))
