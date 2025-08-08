@@ -6,6 +6,8 @@ import(
 	"net"
 	"strconv"
 	"time"
+	"github.com/briandowns/spinner"
+
 )
 
 var startPort int = 1
@@ -21,21 +23,28 @@ func portScan() {
 		return
 	}
 
-
 	fmt.Printf("Scanning ports on %s from %d to %d...\n", host, startPort, endPort)
+
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Start()
+	defer s.Stop()
 
 	for port := startPort; port <= endPort; port++ {
 		address := net.JoinHostPort(host, strconv.Itoa(port))
 		conn, err := net.DialTimeout("tcp", address, 300*time.Millisecond)
-		if err != nil {
-			fmt.Printf("Port %d is close\n", port)
 
+		if err != nil {
+			s.Stop() // stop spinner before printing
+			fmt.Printf("Port %d is close\n", port)
+			s.Start() // restart spinner
 			continue
 		}
+
 		conn.Close()
+		s.Stop()
 		fmt.Printf("Port %d is open\n", port)
+		s.Start()
 
 		time.Sleep(100 * time.Millisecond)
 	}
-
 }
