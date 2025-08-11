@@ -1,50 +1,67 @@
 package commands
 
-import(
+import (
 	"fmt"
-    "goSheild/utils"
+	"goSheild/utils"
 	"net"
 	"strconv"
+	"sync"
 	"time"
-	"github.com/briandowns/spinner"
 
+	"github.com/briandowns/spinner"
 )
 
-var startPort int = 1
-var endPort int = 1024
+var (
+	startPort = 1
+	endPort   = 1024
+	timeout   = 2 * time.Second
+)
+
+func scanPort(host string, port int, results chan<- int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	address := net.JoinHostPort(host, strconv.Itoa(port))
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	if err != nil {
+		return // closed port
+	}
+	conn.Close()
+	results <- port // open port
+}
 
 func portScan() {
 	fmt.Println("$ Type your host")
 	host := utils.AskChoice()
 
-	_, err := net.LookupHost(host)
-	if err != nil {
+	if _, err := net.LookupHost(host); err != nil {
 		fmt.Printf("❌ Invalid host: %s\n", host)
 		return
 	}
 
-	fmt.Printf("Scanning ports on %s from %d to %d...\n", host, startPort, endPort)
+	fmt.Printf("🔍 Scanning ports on %s from %d to %d...\n", host, startPort, endPort)
 
+	// Spinner for UX
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	s.Start()
-	defer s.Stop()
+
+	results := make(chan int, endPort-startPort+1)
+	var wg sync.WaitGroup
 
 	for port := startPort; port <= endPort; port++ {
-		address := net.JoinHostPort(host, strconv.Itoa(port))
-		conn, err := net.DialTimeout("tcp", address, 300*time.Millisecond)
+		wg.Add(1)
+		go scanPort(host, port, results, &wg)
+	}
 
-		if err != nil {
-			s.Stop() // stop spinner before printing
-			fmt.Printf("Port %d is close\n", port)
-			s.Start() // restart spinner
-			continue
-		}
+	// Close channel when done
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-		conn.Close()
-		s.Stop()
+	s.Stop()
+	fmt.Println("✅ Scan Results:")
+
+	for port := range results {
 		fmt.Printf("Port %d is open\n", port)
-		s.Start()
-
-		time.Sleep(100 * time.Millisecond)
 	}
 }
