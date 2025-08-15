@@ -5,13 +5,9 @@ import (
 	"goSheild/commands"
 	"goSheild/ui"
 	"goSheild/utils"
-
-	"time"
 )
 
 func main() {
-	concurrency()
-	return
 
 	ui.PrintHeader()
 
@@ -30,32 +26,6 @@ func main() {
 		}
 	}
 	
-}
-
-func concurrency() {
-	fmt.Println("concurrency starts here")
-
-	ch := make(chan string)
-
-	go func () {
-		defer close(ch)
-		ch <- "a"
-		fmt.Println("go routine 1")
-	}()
-
-	go func () {
-		fmt.Println("go routine 2")
-	}()
-
-	go func () {
-		fmt.Println("go routine 3")
-	}()
-
-	for data := range ch {
-		fmt.Println(data)
-	}
-
-	time.Sleep(1*time.Second)
 }
 
 
